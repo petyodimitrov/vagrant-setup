@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>perform automated functional acceptance tests (via groovy, spock, geb and selenium)</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>10</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+  </properties>
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@2.4.0">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <url>https://github.com/petyodimitrov/vagrant-setup.git</url>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>*/master</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <submoduleCfg class="list"/>
+    <extensions/>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers>
+    <jenkins.triggers.ReverseBuildTrigger>
+      <spec></spec>
+      <upstreamProjects>build-spring-demo, </upstreamProjects>
+      <threshold>
+        <name>SUCCESS</name>
+        <ordinal>0</ordinal>
+        <color>BLUE</color>
+        <completeBuild>true</completeBuild>
+      </threshold>
+    </jenkins.triggers.ReverseBuildTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.BatchFile>
+      <command>@echo off&#xd;
+&#xd;
+echo &quot;build and start new vms&quot;&#xd;
+vagrant up&#xd;
+</command>
+    </hudson.tasks.BatchFile>
+    <hudson.tasks.BatchFile>
+      <command>@echo off&#xd;
+&#xd;
+echo &quot;prepare testing prerequisites&quot;&#xd;
+find &quot;192.168.33.11&quot;  %windir%\System32\drivers\etc\hosts &amp;&amp; ( echo &quot;found&quot; ) || ( echo 192.168.33.11 www.appsetup_proxy_1.com &gt;&gt; %windir%\System32\drivers\etc\hosts )&#xd;
+&#xd;
+wget &quot;http://localhost:8081/nexus/service/local/artifact/maven/redirect?r=snapshots&amp;g=org.cloudfoundry.samples&amp;a=spring-music&amp;v=1.0-SNAPSHOT&amp;p=jar&amp;c=test-jar-with-dependencies&quot; -O spring-music-test-jar-with-dependencies.jar&#xd;
+&#xd;
+java -cp spring-music-test-jar-with-dependencies.jar org.junit.runner.JUnitCore org.cloudfoundry.samples.music.config.geb.DemoSpec&#xd;
+</command>
+    </hudson.tasks.BatchFile>
+    <hudson.tasks.BatchFile>
+      <command>@echo off&#xd;
+&#xd;
+echo &quot;stop &amp; clean vms&quot;&#xd;
+vagrant halt -f&#xd;
+vagrant destroy -f&#xd;
+</command>
+    </hudson.tasks.BatchFile>
+  </builders>
+  <publishers/>
+  <buildWrappers>
+    <hudson.plugins.timestamper.TimestamperBuildWrapper plugin="timestamper@1.7.2"/>
+  </buildWrappers>
+</project>
